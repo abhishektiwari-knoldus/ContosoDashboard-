@@ -1,6 +1,6 @@
 <!--
 Sync Impact Report
-- Version change: scaffold → 1.0.0
+- Version change: scaffold to 1.0.0
 - Modified principles: none; all five principles are newly adopted
 - Added sections: Additional Constraints; Development Workflow
 - Removed sections: none
