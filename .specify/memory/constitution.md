@@ -1,50 +1,79 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: scaffold → 1.0.0
+- Modified principles: none; all five principles are newly adopted
+- Added sections: Additional Constraints; Development Workflow
+- Removed sections: none
+- Follow-up TODOs: ratification date is unknown and remains explicitly marked below
+-->
+
+# ContosoDashboard Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Training-First Scope
+ContosoDashboard MUST remain suitable for offline training and demonstration. Features MUST
+respect the repository's documented non-production status, avoid unapproved external service
+dependencies, and keep production migration concerns isolated behind configuration or service
+abstractions. This preserves repeatable exercises and prevents training code from being
+mistaken for production guidance.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Secure by Boundary
+Authentication and authorization MUST be enforced at the request, page, and service boundaries
+that control protected data. Services MUST verify the current user's access to requested
+resources, including ownership or membership checks, to prevent IDOR-style access. New security
+behavior MUST include a focused verification scenario, and mock authentication MUST remain clearly
+identified as training-only.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Layered Design
+UI components, application services, data access, and infrastructure MUST retain clear
+responsibilities. Business rules MUST live in services or domain models rather than being
+duplicated in Razor markup. Infrastructure integrations MUST use interfaces or configuration
+boundaries when a local implementation may later be replaced by an approved cloud equivalent.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Verifiable Change
+Every feature or bug fix MUST have a proportionate verification plan before completion. Changes
+to services, authorization, persistence, or shared models MUST receive focused automated tests
+when the project supports them; otherwise, the change MUST document and execute reproducible
+build or scenario checks. A change MUST NOT be considered complete while its primary failure mode
+remains untested or unchecked.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Simple, Observable Evolution
+The smallest design that satisfies the stated training scenario MUST be preferred. New complexity,
+dependencies, or abstractions MUST have a documented reason. Failures at application boundaries
+MUST be observable through appropriate logs or user-visible error handling without exposing
+sensitive data. Breaking changes to documented behavior MUST be called out in the change record.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Additional Constraints
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+The application MUST remain compatible with the repository's supported .NET target and Blazor
+Server architecture unless an approved amendment changes that direction. Local development MUST
+work without cloud credentials or network-only services. SQLite and mock authentication are
+training implementations; production claims MUST NOT be inferred from them. Security-sensitive
+documentation MUST identify the production gaps, including the need for a real identity provider,
+password protection, MFA, TLS, audit logging, and applicable accessibility or compliance review.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Development Workflow
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+Each change MUST identify the user-visible behavior or technical contract it affects, the
+boundary that owns that behavior, and the verification used to validate it. Before review,
+contributors MUST run the narrowest relevant checks and a project build when feasible. Reviewers
+MUST check authorization paths, data isolation, error handling, and consistency with the training
+scope for changes that touch protected data or infrastructure. Documentation MUST be updated when
+setup, behavior, security assumptions, or migration guidance changes.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution governs implementation and review decisions for ContosoDashboard. An amendment
+MUST state the affected principles or sections, explain the rationale, identify migration impact,
+and update the Sync Impact Report. A maintainer MUST review the amendment before it is committed.
+Every feature or bug-fix review MUST check compliance with the principles relevant to its scope;
+any justified exception MUST be recorded with an owner and a follow-up condition.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+The constitution uses semantic versioning. MAJOR increments represent incompatible governance
+changes or removed principles. MINOR increments represent new principles or materially expanded
+requirements. PATCH increments represent clarifications, wording, or non-semantic refinements.
+The constitution MUST be reviewed whenever the architecture, authentication model, supported
+runtime, or training purpose materially changes.
+
+**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm original adoption date | **Last Amended**: 2026-09-14
