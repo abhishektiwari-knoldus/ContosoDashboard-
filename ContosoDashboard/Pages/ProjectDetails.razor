@@ -5,6 +5,7 @@
 @using System.Security.Claims
 @attribute [Authorize]
 @inject IProjectService ProjectService
+@inject IDocumentService DocumentService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -155,6 +156,14 @@
 
             <div class="col-md-4">
                 <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between"><h5 class="mb-0">Project Documents</h5><a class="btn btn-sm btn-outline-primary" href="/documents">Manage</a></div>
+                    <div class="card-body">
+                        @if (projectDocuments == null) { <span>Loading...</span> }
+                        else if (!projectDocuments.Any()) { <span class="text-muted">No documents yet.</span> }
+                        else { <div class="list-group list-group-flush">@foreach (var document in projectDocuments.Take(5)) { <a class="list-group-item list-group-item-action px-0" href="/document-download?id=@document.DocumentId" target="_blank">@document.Title <small class="text-muted d-block">@document.Category</small></a> }</div> }
+                    </div>
+                </div>
+                <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0">Team Members</h5>
                     </div>
@@ -237,6 +246,7 @@
     public int ProjectId { get; set; }
 
     private Project? project;
+    private List<Document>? projectDocuments;
     private int currentUserId = 0;
 
     protected override async Task OnInitializedAsync()
@@ -253,6 +263,7 @@
         if (currentUserId > 0)
         {
             project = await ProjectService.GetProjectByIdAsync(ProjectId, currentUserId);
+            if (project != null) projectDocuments = await DocumentService.GetProjectDocumentsAsync(ProjectId, currentUserId);
         }
         
         if (project == null)

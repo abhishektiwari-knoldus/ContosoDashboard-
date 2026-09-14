@@ -5,6 +5,7 @@
 @using System.Security.Claims
 @attribute [Authorize]
 @inject ITaskService TaskService
+@inject IDocumentService DocumentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>My Tasks - ContosoDashboard</PageTitle>
@@ -126,6 +127,13 @@
                                 <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewTaskDetails(task.TaskId)">
                                     <i class="bi bi-eye"></i>
                                 </button>
+                                <a class="btn btn-sm btn-outline-secondary" href="/documents" title="Attach related document">
+                                    <i class="bi bi-paperclip"></i>
+                                </a>
+                                @if (taskDocumentCounts.TryGetValue(task.TaskId, out var count) && count > 0)
+                                {
+                                    <span class="badge bg-info ms-1">@count docs</span>
+                                }
                             </td>
                         </tr>
                     }
@@ -140,6 +148,7 @@
     private string filterStatus = "";
     private string filterPriority = "";
     private int currentUserId = 0;
+    private readonly Dictionary<int, int> taskDocumentCounts = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -155,6 +164,7 @@
         if (currentUserId > 0)
         {
             await LoadTasks();
+            foreach (var task in tasks ?? []) taskDocumentCounts[task.TaskId] = (await DocumentService.GetTaskDocumentsAsync(task.TaskId, currentUserId)).Count;
         }
     }
 

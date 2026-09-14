@@ -5,6 +5,7 @@
 @attribute [Authorize]
 @inject IDashboardService DashboardService
 @inject INotificationService NotificationService
+@inject IDocumentService DocumentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Dashboard - ContosoDashboard</PageTitle>
@@ -28,6 +29,7 @@
                     </div>
                 </div>
             </div>
+            <div class="col-md-3 mb-3"><div class="card summary-card"><div class="card-body"><h5 class="card-title">Documents</h5><p class="card-text display-4 text-success">@documentCount</p></div></div></div>
             <div class="col-md-3 mb-3">
                 <div class="card summary-card">
                     <div class="card-body">
@@ -77,6 +79,7 @@
     }
 
     <div class="row">
+        <div class="col-md-6 mb-4"><h3>Recent Documents</h3>@if (recentDocuments?.Any() == true) { <div class="list-group">@foreach (var document in recentDocuments) { <a class="list-group-item list-group-item-action" href="/document-download?id=@document.DocumentId" target="_blank"><strong>@document.Title</strong><span class="float-end text-muted">@document.UploadedDate.ToLocalTime().ToString("MMM dd")</span><small class="d-block text-muted">@document.Category</small></a> }</div> } else { <p class="text-muted">No documents uploaded yet.</p> }</div>
         <div class="col-md-6">
             <h3>Quick Actions</h3>
             <div class="list-group">
@@ -126,6 +129,8 @@
     private List<Notification>? recentNotifications;
     private string userName = "User";
     private int currentUserId = 0;
+    private List<Document>? recentDocuments;
+    private int documentCount;
 
     protected override async Task OnInitializedAsync()
     {
@@ -146,6 +151,8 @@
             summary = await DashboardService.GetDashboardSummaryAsync(currentUserId);
             announcements = await DashboardService.GetActiveAnnouncementsAsync();
             recentNotifications = await NotificationService.GetUserNotificationsAsync(currentUserId);
+            recentDocuments = await DocumentService.GetRecentDocumentsAsync(currentUserId);
+            documentCount = await DocumentService.GetDocumentCountAsync(currentUserId);
         }
     }
 

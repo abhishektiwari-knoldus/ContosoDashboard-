@@ -1,0 +1,20 @@
+@page "/document-reports"
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@attribute [Authorize(Roles = "Administrator")]
+@inject IDocumentService DocumentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Document Reports - ContosoDashboard</PageTitle>
+<div class="container-fluid"><h1>Document Reports</h1><p class="text-muted">Administrator-only document activity summaries.</p>
+@if (report == null) { <p><em>Loading...</em></p> } else { <div class="row mb-4"><div class="col-md-3"><div class="card"><div class="card-body"><small>Total documents</small><h2>@report.TotalDocuments</h2></div></div></div></div><div class="row"><div class="col-md-4"><h5>File types</h5><ul class="list-group">@foreach (var row in report.ByFileType) { <li class="list-group-item d-flex justify-content-between">@row.Key<span>@row.Value</span></li> }</ul></div><div class="col-md-4"><h5>Active uploaders</h5><ul class="list-group">@foreach (var row in report.ByUploader.OrderByDescending(x => x.Value)) { <li class="list-group-item d-flex justify-content-between">@row.Key<span>@row.Value</span></li> }</ul></div><div class="col-md-4"><h5>Activity</h5><ul class="list-group">@foreach (var row in report.ByAction.OrderByDescending(x => x.Value)) { <li class="list-group-item d-flex justify-content-between">@row.Key<span>@row.Value</span></li> }</ul></div></div>}
+</div>
+@code {
+    private DocumentReport? report;
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = state.User.FindFirst(ClaimTypes.NameIdentifier);
+        if (claim != null && int.TryParse(claim.Value, out var userId)) report = await DocumentService.GetReportAsync(userId);
+    }
+}

@@ -233,6 +233,15 @@ ContosoDashboard/
 
 ## Configuration
 
+### Document Management (Training Feature)
+
+Documents are stored locally under `ContosoDashboard/AppData/uploads`, outside `wwwroot`, and
+their metadata is stored in SQLite. The application uses generated GUID-based paths, a 25 MB
+per-file limit, and an allowlist for PDF, Office, text, JPEG, and PNG files. The offline scan
+service performs extension, MIME, and basic content-signature validation before storage; it is a
+training substitute and is not malware protection. Production deployments must replace it with an
+approved malware scanner, real identity provider, access audit controls, and secure infrastructure.
+
 ### Database Connection
 
 The default connection string in `appsettings.json` uses SQLite:

@@ -1,0 +1,108 @@
+@page "/documents"
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+@inject IDocumentService DocumentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Documents - ContosoDashboard</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div><h1>Documents</h1><p class="text-muted mb-0">Upload, find, and manage work documents.</p></div>
+        <label class="btn btn-primary mb-0"><i class="bi bi-upload"></i> Upload documents<InputFile OnChange="SelectFiles" multiple class="visually-hidden" /></label>
+    </div>
+    <div class="row g-2 mb-4">
+        <div class="col-md-5"><input class="form-control" placeholder="Search title, description, tags, uploader, or project" @bind="searchText" @bind:event="oninput" /></div>
+        <div class="col-md-3"><select class="form-select" @bind="category"><option value="">All categories</option>@foreach (var item in DocumentRules.Categories) { <option value="@item">@item</option> }</select></div>
+        <div class="col-md-2"><select class="form-select" @bind="sortBy"><option value="date">Newest</option><option value="title">Title</option><option value="category">Category</option><option value="size">Size</option></select></div>
+        <div class="col-md-2"><button class="btn btn-outline-secondary w-100" @onclick="LoadDocuments">Apply filters</button></div>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(message)) { <div class="alert @(isError ? "alert-danger" : "alert-success")">@message</div> }
+    @if (selectedFiles.Count > 0)
+    {
+        <div class="card mb-4"><div class="card-body"><h5>Upload files</h5>
+            <div class="row g-2 mb-3"><div class="col-md-4"><input class="form-control" placeholder="Document title" @bind="title" /></div><div class="col-md-3"><select class="form-select" @bind="selectedCategory"><option value="">Choose category</option>@foreach (var item in DocumentRules.Categories) { <option value="@item">@item</option> }</select></div><div class="col-md-5"><input class="form-control" placeholder="Tags, separated by commas" @bind="tags" /></div></div>
+            <div class="mb-3"><textarea class="form-control" placeholder="Description (optional)" @bind="description"></textarea></div>
+            @foreach (var file in selectedFiles) { <div class="small mb-1"><span>@file.Name</span><span class="text-muted ms-2">(@FormatSize(file.Size))</span></div> }
+            <button class="btn btn-primary" disabled="@uploading" @onclick="UploadFiles">@(uploading ? "Uploading..." : "Upload selected files")</button>
+            <button class="btn btn-link" @onclick="ClearSelection">Cancel</button>
+        </div></div>
+    }
+    @if (editDocumentId.HasValue)
+    {
+        <div class="card mb-4"><div class="card-body"><h5>Edit metadata</h5><div class="row g-2"><div class="col-md-4"><input class="form-control" @bind="editTitle" /></div><div class="col-md-3"><select class="form-select" @bind="editCategory">@foreach (var item in DocumentRules.Categories) { <option value="@item">@item</option> }</select></div><div class="col-md-5"><input class="form-control" placeholder="Tags" @bind="editTags" /></div></div><textarea class="form-control my-2" placeholder="Description" @bind="editDescription"></textarea><button class="btn btn-primary" @onclick="SaveMetadata">Save</button> <button class="btn btn-link" @onclick="CancelEdit">Cancel</button></div></div>
+    }
+    @if (shareDocumentId.HasValue)
+    {
+        <div class="card mb-4"><div class="card-body"><h5>Share document</h5><div class="input-group"><input class="form-control" type="number" placeholder="Recipient user ID" @bind="shareUserId" /><button class="btn btn-primary" @onclick="ShareDocument">Share</button></div><small class="text-muted">Use a user ID from the training team directory.</small></div></div>
+    }
+    @if (documents == null) { <p><em>Loading...</em></p> } else if (!documents.Any()) { <div class="alert alert-info">No accessible documents found.</div> } else {
+        <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Title</th><th>Category</th><th>Uploaded</th><th>Size</th><th>Project</th><th>Actions</th></tr></thead><tbody>
+        @foreach (var document in documents) { <tr><td><strong>@document.Title</strong><br /><small class="text-muted">@document.OriginalFileName</small></td><td>@document.Category</td><td>@document.UploadedDate.ToLocalTime().ToString("MMM dd, yyyy")</td><td>@FormatSize(document.FileSize)</td><td>@(document.Project?.Name ?? "Personal")</td><td><a class="btn btn-sm btn-outline-primary" href="/document-download?id=@document.DocumentId&preview=true" target="_blank" title="Preview"><i class="bi bi-eye"></i></a> <a class="btn btn-sm btn-outline-secondary" href="/document-download?id=@document.DocumentId" title="Download"><i class="bi bi-download"></i></a> <button class="btn btn-sm btn-outline-primary" @onclick="() => BeginEdit(document)"><i class="bi bi-pencil"></i></button> <button class="btn btn-sm btn-outline-info" @onclick="() => BeginShare(document.DocumentId)"><i class="bi bi-share"></i></button> <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(document.DocumentId)"><i class="bi bi-trash"></i></button></td></tr> }
+        </tbody></table></div>
+    }
+</div>
+
+@code {
+    private List<Document>? documents;
+    private List<IBrowserFile> selectedFiles = [];
+    private string searchText = "", category = "", sortBy = "date", title = "", description = "", tags = "", selectedCategory = "";
+    private string? message;
+    private bool isError, uploading;
+    private int currentUserId;
+    private int? editDocumentId, shareDocumentId, shareUserId;
+    private string editTitle = "", editDescription = "", editCategory = "", editTags = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = state.User.FindFirst(ClaimTypes.NameIdentifier);
+        if (claim != null) int.TryParse(claim.Value, out currentUserId);
+        await LoadDocuments();
+    }
+
+    private async Task LoadDocuments()
+    {
+        if (currentUserId <= 0) return;
+        documents = await DocumentService.GetMyDocumentsAsync(currentUserId, new DocumentSearchRequest(searchText, category, SortBy: sortBy));
+    }
+
+    private void SelectFiles(InputFileChangeEventArgs args) { selectedFiles = args.GetMultipleFiles(20).ToList(); message = null; }
+    private void ClearSelection() { selectedFiles.Clear(); title = description = tags = selectedCategory = ""; }
+
+    private async Task UploadFiles()
+    {
+        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(selectedCategory)) { SetError("Title and category are required."); return; }
+        uploading = true; message = null;
+        var successes = 0; var errors = new List<string>();
+        foreach (var file in selectedFiles)
+        {
+            try
+            {
+                await using var stream = file.OpenReadStream(DocumentRules.MaximumFileSize);
+                var result = await DocumentService.UploadAsync(currentUserId, new DocumentMetadata(title, description, selectedCategory, tags, null, null), stream, file.Name, file.ContentType, file.Size);
+                if (result.Succeeded) successes++; else errors.Add($"{file.Name}: {result.Error}");
+            }
+            catch (Exception ex) { errors.Add($"{file.Name}: {ex.Message}"); }
+        }
+        uploading = false; ClearSelection(); await LoadDocuments();
+        message = errors.Count == 0 ? $"{successes} document(s) uploaded successfully." : $"Uploaded {successes}; {errors.Count} failed. {string.Join(" ", errors)}";
+        isError = errors.Count > 0;
+    }
+
+    private async Task Delete(int documentId)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Permanently delete this document?")) return;
+        if (await DocumentService.DeleteAsync(currentUserId, documentId)) { message = "Document deleted."; isError = false; await LoadDocuments(); } else SetError("The document could not be deleted.");
+    }
+    private void SetError(string value) { message = value; isError = true; }
+    private void BeginEdit(Document document) { editDocumentId = document.DocumentId; editTitle = document.Title; editDescription = document.Description ?? ""; editCategory = document.Category; editTags = document.Tags ?? ""; }
+    private void CancelEdit() => editDocumentId = null;
+    private async Task SaveMetadata() { if (editDocumentId.HasValue && await DocumentService.UpdateMetadataAsync(currentUserId, editDocumentId.Value, new DocumentMetadata(editTitle, editDescription, editCategory, editTags, null, null))) { editDocumentId = null; message = "Metadata updated."; isError = false; await LoadDocuments(); } else SetError("Metadata could not be updated."); }
+    private void BeginShare(int documentId) { shareDocumentId = documentId; shareUserId = null; }
+    private async Task ShareDocument() { if (shareDocumentId.HasValue && await DocumentService.ShareAsync(currentUserId, shareDocumentId.Value, shareUserId, null)) { shareDocumentId = null; message = "Document shared."; isError = false; } else SetError("Document could not be shared."); }
+    private static string FormatSize(long size) => size switch { >= 1024 * 1024 => $"{size / 1024d / 1024d:0.0} MB", >= 1024 => $"{size / 1024d:0.0} KB", _ => $"{size} B" };
+}
